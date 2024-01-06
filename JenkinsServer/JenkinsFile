@@ -1,0 +1,86 @@
+pipeline{
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('AccessKey')
+        AWS_SECRET_ACCESS_KEY = credentials('Secret_AccessKey')
+        AWS_DEFAULT_REGION = "ap-south-1"
+    }
+    
+    stages{
+        stage('Source Code CheckOut'){
+            steps{
+                script{
+                     git branch: 'main', url: ' https://github.com/AyushUniyal/EksTerraform.git'
+                }
+            }
+        }
+        stage('Terraform Init'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+        
+        stage('Terraform Formatting'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform fmt'
+                    }
+                }
+            }
+        }
+        
+        stage('Terraform Validating Code'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform validate'
+                    }
+                }
+            }
+        }
+        
+        stage('Terraform Planning Changes'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform plan > changeLog_${BUILD_NUMBER}.txt'
+                    }
+                    input(message: "Based on changeLog_${BUILD_NUMBER}.txt, Are you sure to proceed", ok:"Proceed")
+                }
+            }
+        }
+        
+        stage('Terraform ${action} Changes '){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform  $action --auto-approve'
+                    }
+
+                }
+            }
+        }
+        
+        stage('Deploying nginx application'){
+            steps{
+                script{
+                    dir('EKS/ConfigurationFIles'){
+                        sh 'aws eks update-kubeconfig --region ap-south-1 --name my-eks-cluster'
+                        sh 'kubectl cluster-info'
+                        sh 'kubectl apply -f deployment.yml'
+                        sh 'kubectl apply -f service.yml'
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    
+    
+}
