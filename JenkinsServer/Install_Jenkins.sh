@@ -19,6 +19,13 @@ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinu
 sudo yum -y install terraform
 
 #finally install kubect1
-sudo curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.23.6/bin/linux/amd64/kubectl
-sudo chmod +x ./kubectl
-sudo mkdir -p $HOME/bin && sudo cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
+EOF
+
+sudo yum install -y kubectl
